@@ -1,0 +1,12 @@
+# Core Scientific Computing Libraries
+numpy
+scipy
+
+# The Essential Classical Computer Vision Library
+opencv-python
+
+# Image Handling (often used with OpenCV)
+pillow
+
+# For visualization and plotting (useful for the demo/debugging)
+matplotlib
