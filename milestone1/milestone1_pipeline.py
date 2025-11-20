@@ -87,6 +87,7 @@ def smooth_contour(contour, window=5):
     if len(sm) != n:
         sm = sm[:n]
     return sm
+#لحد هنا كل اللي فوق ده عبارة عن تجهيزات للصوره عشان اقدر اعمل عليها العمليه المطلوبه 
 
 # MAIN
 def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_AREA_RATIO):
