@@ -7,12 +7,14 @@ import cv2
 import pandas as pd
 
 # CONFIG
+# Set your data directory here/ data paths for input images and outputs
 DATA_DIR = Path("D:/asu/Fall 2025/CSE 483 Computer vision/Project/Gravity Falls")
 OUT_DIR = Path("puzzle_output")            # output folder
 MAX_DM = 1200  # resize large images to this max dim for processing; contours mappedback
 MIN_AREA_RATIO = 0.002  # min conour area relative to image area (tune per dataset)
 
 # UTIL
+# helper functions
 def ensure_dir(p): Path(p).mkdir(parents=True, exist_ok=True)
 def normalize_contour(cnt):
     cnt = np.squeeze(cnt).astype(int)
@@ -89,7 +91,7 @@ def smooth_contour(contour, window=5):
     return sm
 #لحد هنا كل اللي فوق ده عبارة عن تجهيزات للصوره عشان اقدر اعمل عليها العمليه المطلوبه 
 
-# MAIN
+# main processing function
 def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_AREA_RATIO):
     ensure_dir(out_dir)
     imgs = sorted(glob(str(Path(data_dir) / "**" / "*.png"), recursive=True) +
