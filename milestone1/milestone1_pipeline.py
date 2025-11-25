@@ -5,10 +5,11 @@ from pathlib import Path
 import numpy as np
 import cv2
 import pandas as pd
+import matplotlib.pyplot as plt  # Added for debug visualization
 
 # CONFIG
 # Set your data directory here/ data paths for input images and outputs
-DATA_DIR = Path("D:/asu/Fall 2025/CSE 483 Computer vision/Project/Gravity Falls")
+DATA_DIR = r"C:\Users\belal\Desktop\Fall 2026\computer vision\project\JigsawCV\Gravity Falls\puzzle_8x8"
 OUT_DIR = Path("puzzle_output")            # output folder
 MAX_DM = 1200  # resize large images to this max dim for processing; contours mappedback
 MIN_AREA_RATIO = 0.002  # min conour area relative to image area (tune per dataset)
@@ -16,6 +17,7 @@ MIN_AREA_RATIO = 0.002  # min conour area relative to image area (tune per datas
 # UTIL
 # helper functions
 def ensure_dir(p): Path(p).mkdir(parents=True, exist_ok=True)
+
 def normalize_contour(cnt):
     cnt = np.squeeze(cnt).astype(int)
     if cnt.ndim == 1:
@@ -69,7 +71,6 @@ def split_contour_by_curvature(cnt, k=6, factor=1.7, min_seg_len=25):
         return [cnt.tolist()]
     return segs
 
-
 def smooth_contour(contour, window=5):
     """Circular moving-average smoothing of a contour (Nx2 array).
     Returns a smoothed Nx2 numpy array (float32).
@@ -89,7 +90,86 @@ def smooth_contour(contour, window=5):
     if len(sm) != n:
         sm = sm[:n]
     return sm
-#لحد هنا كل اللي فوق ده عبارة عن تجهيزات للصوره عشان اقدر اعمل عليها العمليه المطلوبه 
+
+# =============================================================================
+# NEW DEBUG FUNCTIONS ADDED FROM ENHANCED CODE
+# =============================================================================
+
+def create_debug_visualization(original, denoised, enhanced, binary, contours, output_path):
+    """
+    Create comprehensive visualization of processing pipeline
+    Shows all steps from original image to final contours
+    """
+    fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+    
+    # Original image
+    axes[0, 0].imshow(cv2.cvtColor(original, cv2.COLOR_BGR2RGB))
+    axes[0, 0].set_title('Original Image')
+    axes[0, 0].axis('off')
+    
+    # Denoised image
+    axes[0, 1].imshow(cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB))
+    axes[0, 1].set_title('Denoised (Bilateral Filter)')
+    axes[0, 1].axis('off')
+    
+    # Enhanced image (grayscale)
+    axes[0, 2].imshow(enhanced, cmap='gray')
+    axes[0, 2].set_title('Enhanced (CLAHE + Blur)')
+    axes[0, 2].axis('off')
+    
+    # Binary mask
+    axes[1, 0].imshow(binary, cmap='gray')
+    axes[1, 0].set_title('Binary Mask')
+    axes[1, 0].axis('off')
+    
+    # Contours on original
+    contour_vis = original.copy()
+    cv2.drawContours(contour_vis, contours, -1, (0, 255, 0), 2)
+    axes[1, 1].imshow(cv2.cvtColor(contour_vis, cv2.COLOR_BGR2RGB))
+    axes[1, 1].set_title(f'Detected Contours: {len(contours)}')
+    axes[1, 1].axis('off')
+    
+    # Individual pieces (color coded)
+    piece_vis = np.zeros_like(original)
+    for i, contour in enumerate(contours):
+        color = plt.cm.tab10(i % 10)
+        color_bgr = [int(c * 255) for c in color[:3]][::-1]
+        cv2.drawContours(piece_vis, [contour], -1, color_bgr, -1)
+    axes[1, 2].imshow(cv2.cvtColor(piece_vis, cv2.COLOR_BGR2RGB))
+    axes[1, 2].set_title('Segmented Pieces')
+    axes[1, 2].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+def visualize_edges(contour, edges, output_path):
+    """
+    Visualize detected edges on a contour with different colors
+    """
+    plt.figure(figsize=(10, 8))
+    
+    # Plot full contour
+    contour_array = np.array(contour)
+    plt.plot(contour_array[:, 0], -contour_array[:, 1], 'k-', alpha=0.3, label='Full Contour')
+    
+    # Plot each edge with different color
+    colors = plt.cm.Set3(np.linspace(0, 1, len(edges)))
+    for i, edge in enumerate(edges):
+        edge_array = np.array(edge)
+        plt.plot(edge_array[:, 0], -edge_array[:, 1], 'o-', 
+                color=colors[i], markersize=4, label=f'Edge {i+1}')
+    
+    plt.legend()
+    plt.title(f'Detected Edges: {len(edges)}')
+    plt.axis('equal')
+    plt.grid(True, alpha=0.3)
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
+# =============================================================================
+# MODIFIED MAIN PROCESSING FUNCTION
+# =============================================================================
 
 # main processing function
 def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_AREA_RATIO):
@@ -99,10 +179,16 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
                   glob(str(Path(data_dir) / "**" / "*.jpeg"), recursive=True))
     metadata = []
     summary = []
+    
+    print(f"📁 Found {len(imgs)} images in {data_dir}")
+    
     for img_path in imgs:
         img = cv2.imread(img_path)
         if img is None:
             print("Couldn't read", img_path); continue
+        
+        print(f"🔍 Processing: {Path(img_path).name}")
+        
         h,w = img.shape[:2]
         scale = 1.0
         if max(h,w) > max_dim:
@@ -110,15 +196,18 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             img_small = cv2.resize(img, (int(w*scale), int(h*scale)), interpolation=cv2.INTER_AREA)
         else:
             img_small = img.copy()
-        # preprocessing
+        
+        # preprocessing - STORE INTERMEDIATE RESULTS FOR DEBUGGING
         den = cv2.bilateralFilter(img_small, d=9, sigmaColor=75, sigmaSpace=75)
         gray = cv2.cvtColor(den, cv2.COLOR_BGR2GRAY)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8)); gray = clahe.apply(gray)
-        blur = cv2.GaussianBlur(gray, (5,5), 0)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8)); 
+        gray_clahe = clahe.apply(gray)  # Store CLAHE result
+        blur = cv2.GaussianBlur(gray_clahe, (5,5), 0)
         _, th = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
         clean = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel, iterations=1)
         clean = cv2.morphologyEx(clean, cv2.MORPH_CLOSE, kernel, iterations=2)
+        
         contours, _ = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
         min_area = img_small.shape[0]*img_small.shape[1]*min_area_ratio
         pieces = []
@@ -127,13 +216,31 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             if area < min_area: continue
             pieces.append((area, cnt))
         pieces = sorted(pieces, key=lambda x:-x[0])
+        
         base = Path(out_dir) / Path(img_path).stem
-        ensure_dir(base / "masks"); ensure_dir(base / "crops"); ensure_dir(base / "vis")
-        # save visualization
+        ensure_dir(base / "masks"); ensure_dir(base / "crops"); 
+        ensure_dir(base / "vis"); ensure_dir(base / "debug")  # ADDED DEBUG FOLDER
+        
+        # =============================================================================
+        # NEW: CREATE DEBUG VISUALIZATION FOR ENTIRE PIPELINE
+        # =============================================================================
+        debug_path = str(base / "debug" / f"{Path(img_path).stem}_pipeline.png")
+        create_debug_visualization(
+            original=img_small,
+            denoised=den,
+            enhanced=blur,  # Using blurred image as enhanced representation
+            binary=clean,
+            contours=[p[1] for p in pieces],
+            output_path=debug_path
+        )
+        print(f"   💾 Saved debug visualization: {debug_path}")
+        
+        # save original visualization (existing functionality)
         vis = img_small.copy()
         if pieces:
             cv2.drawContours(vis, [p[1] for p in pieces], -1, (0,255,0), 2)
         cv2.imwrite(str(base / "vis" / f"{Path(img_path).stem}_contours.png"), vis)
+        
         # each piece
         for i,(area,cnt) in enumerate(pieces):
             uid = f"{Path(img_path).stem}_piece{i}"
@@ -153,8 +260,16 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             crop_path = str(base / "crops" / f"{uid}_crop.png")
             cv2.imwrite(mask_path, mask_crop)
             cv2.imwrite(crop_path, crop)
+            
             # edges computed from smoothed contour
             edges = split_contour_by_curvature(cnt_np_smooth, k=6, factor=1.7, min_seg_len=25)
+            
+            # =============================================================================
+            # NEW: CREATE EDGE VISUALIZATION FOR EACH PIECE
+            # =============================================================================
+            edge_vis_path = str(base / "vis" / f"{uid}_edges.png")
+            visualize_edges(cnt_np_smooth, edges, edge_vis_path)
+            
             meta = {
                 "id": uid,
                 "source_image": img_path,
@@ -171,11 +286,17 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             }
             metadata.append(meta)
             summary.append({"id":uid, "source":Path(img_path).stem, "area_px":meta["area_px"], "bbox":meta["bbox"], "n_contour_pts":meta["contour_n_points"], "n_edges": len(edges)})
+            
+            print(f"   ✅ Piece {i}: area={meta['area_px']}px, edges={len(edges)}")
+        
+        print(f"   📊 Found {len(pieces)} valid pieces")
+    
     # save metadata
     with open(Path(out_dir)/"pieces_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
     pd.DataFrame(summary).to_csv(Path(out_dir)/"pieces_summary.csv", index=False)
     print("Done. outputs in:", out_dir)
+    print(f"🎉 Total pieces processed: {len(metadata)}")
 
 if __name__ == "__main__":
     # set DATA_DIR before running or modify the DATA_DIR value above
