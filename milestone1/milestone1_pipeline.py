@@ -202,7 +202,7 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
     metadata = []
     summary = []
     
-    print(f"📁 Found {len(imgs)} images in {data_dir}")
+    print(f" Found {len(imgs)} images in {data_dir}")
     
     for img_path in imgs:
         img = cv2.imread(img_path)
@@ -273,7 +273,7 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             contours=[p[1] for p in pieces],
             output_path=debug_path
         )
-        print(f"   💾 Saved debug visualization: {debug_path}")
+        print(f"    Saved debug visualization: {debug_path}")
         
         # Save contour visualization ON CLAHE IMAGE (as requested)
         contour_vis = clahe_enhanced.copy()
@@ -321,16 +321,17 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             metadata.append(meta)
             summary.append({"id":uid, "source":Path(img_path).stem, "area_px":meta["area_px"], "bbox":meta["bbox"], "n_contour_pts":meta["contour_n_points"], "n_edges": len(edges)})
             
-            print(f"   ✅ Piece {i}: area={meta['area_px']}px, edges={len(edges)}")
+            print(f"    Piece {i}: area={meta['area_px']}px, edges={len(edges)}")
         
-        print(f"   📊 Found {len(pieces)} valid pieces")
+        print(f"    Found {len(pieces)} valid pieces")
     
     # Save metadata
     with open(Path(out_dir)/"pieces_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
     pd.DataFrame(summary).to_csv(Path(out_dir)/"pieces_summary.csv", index=False)
     print("Done. outputs in:", out_dir)
-    print(f"🎉 Total pieces processed: {len(metadata)}")
+    print(f" Total pieces processed: {len(metadata)}")
 
 if __name__ == "__main__":
+
     process_all_images(DATA_DIR, OUT_DIR)
