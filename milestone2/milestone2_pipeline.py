@@ -24,7 +24,7 @@ class PuzzleEdgeMatcher:
         Path(self.config['vis_dir']).mkdir(parents=True, exist_ok=True)
     
     def load_metadata(self, metadata_path):
-        print(f"📂 Loading metadata from: {metadata_path}")
+        print(f" Loading metadata from: {metadata_path}")
         
         with open(metadata_path, 'r') as f:
             data = json.load(f)
@@ -36,11 +36,11 @@ class PuzzleEdgeMatcher:
         self.pieces = data['pieces']
         self.puzzle_type = data.get('puzzle_type', 'unknown')
         
-        print(f"✅ Loaded {len(self.pieces)} puzzle pieces ({self.puzzle_type})")
+        print(f" Loaded {len(self.pieces)} puzzle pieces ({self.puzzle_type})")
         return True
     
     def preprocess_edges(self):
-        print("\n🔄 Preprocessing edges...")
+        print("\n Preprocessing edges...")
         
         total_edges = 0
         for piece in self.pieces:
@@ -70,7 +70,7 @@ class PuzzleEdgeMatcher:
                 total_edges += 1
         
         border_count = sum(1 for e in self.edges_db if e['is_border'])
-        print(f"✅ Processed {total_edges} edges ({border_count} border edges)")
+        print(f" Processed {total_edges} edges ({border_count} border edges)")
         return True
     
     def _resample_edge(self, points, num_points):
@@ -141,7 +141,7 @@ class PuzzleEdgeMatcher:
             return float('inf')
     
     def find_all_matches(self):
-        print(f"\n🔍 Finding matches among {len(self.edges_db)} edges...")
+        print(f"\n Finding matches among {len(self.edges_db)} edges...")
         
         # Only match non-border edges
         candidate_edges = [e for e in self.edges_db if not e['is_border']]
@@ -191,7 +191,7 @@ class PuzzleEdgeMatcher:
                 })
         
         elapsed = time.time() - start_time
-        print(f"\n✅ Match computation completed in {elapsed:.1f} seconds")
+        print(f"\n Match computation completed in {elapsed:.1f} seconds")
         print(f"   Found {len(all_matches)} query edges with matches")
         
         total_candidates = sum(len(m['candidates']) for m in all_matches)
@@ -200,7 +200,7 @@ class PuzzleEdgeMatcher:
         return all_matches
     
     def save_results(self, matches):
-        print("\n💾 Saving results...")
+        print("\n Saving results...")
         
         # Save CSV
         csv_data = []
@@ -220,7 +220,7 @@ class PuzzleEdgeMatcher:
         df = pd.DataFrame(csv_data)
         csv_path = Path(self.config['output_dir']) / "matches_ranked.csv"
         df.to_csv(csv_path, index=False)
-        print(f"   ✅ CSV saved: {csv_path} ({len(df)} matches)")
+        print(f"    CSV saved: {csv_path} ({len(df)} matches)")
         
         # Save JSON
         json_data = {
@@ -235,7 +235,7 @@ class PuzzleEdgeMatcher:
         json_path = Path(self.config['output_dir']) / "matches_detailed.json"
         with open(json_path, 'w') as f:
             json.dump(json_data, f, indent=2)
-        print(f"   ✅ JSON saved: {json_path}")
+        print(f"    JSON saved: {json_path}")
         
         # Save summary
         if len(df) > 0:
@@ -251,7 +251,7 @@ class PuzzleEdgeMatcher:
             summary_path = Path(self.config['output_dir']) / "match_summary.json"
             with open(summary_path, 'w') as f:
                 json.dump(summary, f, indent=2)
-            print(f"   ✅ Summary saved: {summary_path}")
+            print(f"    Summary saved: {summary_path}")
             
             print("\n" + "=" * 50)
             print("MATCHING SUMMARY")
@@ -262,7 +262,7 @@ class PuzzleEdgeMatcher:
         return df
     
     def visualize_matches(self, matches, max_plots=10):
-        print(f"\n🎨 Creating visualizations...")
+        print(f"\n Creating visualizations...")
         
         vis_count = min(max_plots, len(matches))
         
@@ -312,7 +312,7 @@ class PuzzleEdgeMatcher:
             plt.savefig(Path(self.config['vis_dir']) / filename, dpi=150, bbox_inches='tight')
             plt.close()
         
-        print(f"✅ Saved {vis_count} visualizations to {self.config['vis_dir']}")
+        print(f" Saved {vis_count} visualizations to {self.config['vis_dir']}")
     
     def run(self, metadata_path):
         print("=" * 60)
@@ -330,7 +330,7 @@ class PuzzleEdgeMatcher:
         matches = self.find_all_matches()
         
         if not matches:
-            print("\n⚠️  No matches found!")
+            print("\n  No matches found!")
             print(f"   Try increasing threshold (current: {self.config['match_threshold']})")
             print("   Or check if edges were detected correctly in Milestone 1")
             return False
@@ -342,7 +342,7 @@ class PuzzleEdgeMatcher:
         self.visualize_matches(matches, max_plots=self.config['max_visualizations'])
         
         print("\n" + "=" * 60)
-        print("🎉 MILESTONE 2 COMPLETED!")
+        print(" MILESTONE 2 COMPLETED!")
         print("=" * 60)
         print(f"\nOutputs in: {self.config['output_dir']}")
         
@@ -396,7 +396,7 @@ def main():
     
     # Check if input file exists
     if not Path(args.input).exists():
-        print(f"❌ Input file not found: {args.input}")
+        print(f" Input file not found: {args.input}")
         print("\nPlease run Simple Milestone 1 first:")
         print("  python simple_milestone1.py --puzzle_type 2x2")
         return 1
@@ -406,7 +406,7 @@ def main():
     success = matcher.run(args.input)
     
     if not success:
-        print("\n❌ Milestone 2 failed. Check errors above.")
+        print("\n Milestone 2 failed. Check errors above.")
         return 1
     
     return 0
