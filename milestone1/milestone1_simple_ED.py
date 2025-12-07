@@ -29,7 +29,7 @@ class SimpleEdgeDetector:
         # Load image
         img = cv2.imread(str(image_path))
         if img is None:
-            print(f"  ⚠️  Could not load {image_path.name}")
+            print(f"    Could not load {image_path.name}")
             return []
         
         # Resize if too large for processing
@@ -149,7 +149,7 @@ class SimpleEdgeDetector:
     
     def process_all_images(self):
         """Process all images in the input folder."""
-        print(f"🔍 Processing images in: {self.input_folder}")
+        print(f" Processing images in: {self.input_folder}")
         
         # Get all image files
         image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
@@ -159,10 +159,10 @@ class SimpleEdgeDetector:
             image_files.extend(list(self.input_folder.glob(f"*{ext.upper()}")))
         
         if not image_files:
-            print("❌ No images found!")
+            print(" No images found!")
             return None
         
-        print(f"📸 Found {len(image_files)} images")
+        print(f" Found {len(image_files)} images")
         
         all_pieces = []
         
@@ -183,7 +183,7 @@ class SimpleEdgeDetector:
         with open(self.output_json_path, 'w') as f:
             json.dump(metadata, f, indent=2)
         
-        print(f"\n✅ Saved {len(all_pieces)} pieces to {self.output_json_path}")
+        print(f"\n Saved {len(all_pieces)} pieces to {self.output_json_path}")
         
         # Create simple visualization
         self.create_summary_visualization(all_pieces)
@@ -193,7 +193,7 @@ class SimpleEdgeDetector:
     def create_summary_visualization(self, pieces):
         """Create a simple visualization of detected pieces."""
         if not pieces:
-            print("⚠️  No pieces to visualize")
+            print("  No pieces to visualize")
             return
         
         fig, axes = plt.subplots(2, 3, figsize=(15, 10))
@@ -233,7 +233,7 @@ class SimpleEdgeDetector:
         plt.savefig(vis_path, dpi=150, bbox_inches='tight')
         plt.close()
         
-        print(f"📊 Visualization saved: {vis_path}")
+        print(f" Visualization saved: {vis_path}")
 
 def run_simple_milestone1():
     """Run the simplified Milestone 1."""
@@ -266,7 +266,7 @@ def run_simple_milestone1():
     
     input_folder = input_folders.get(args.puzzle_type)
     if not input_folder or not input_folder.exists():
-        print(f"❌ Input folder not found: {input_folder}")
+        print(f" Input folder not found: {input_folder}")
         print("Available folders in Gravity Falls:")
         for item in GRAVITY_FALLS.iterdir():
             if item.is_dir():
@@ -280,18 +280,18 @@ def run_simple_milestone1():
     else:
         output_path = OUTPUT_BASE / f"pieces_{args.puzzle_type}.json"
     
-    print(f"📁 Input: {input_folder}")
-    print(f"📁 Output: {output_path}")
+    print(f" Input: {input_folder}")
+    print(f" Output: {output_path}")
     
     # Create and run detector
     detector = SimpleEdgeDetector(input_folder, output_path)
     metadata = detector.process_all_images()
     
     if metadata:
-        print(f"\n🎉 Milestone 1 Complete!")
+        print(f"\n Milestone 1 Complete!")
         print(f"   Pieces detected: {len(metadata['pieces'])}")
         print(f"   Output saved to: {output_path}")
-        print(f"\n🔗 Next step: Run milestone2_simple.py with this file")
+        print(f"\n Next step: Run milestone2_simple.py with this file")
         print(f"   Command: python milestone2_simple.py --input \"{output_path}\"")
 
 if __name__ == "__main__":
