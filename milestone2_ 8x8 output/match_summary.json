@@ -1,0 +1,8 @@
+{
+  "best_match_distance": 0.00020878633949905634,
+  "worst_match_distance": 0.14955739676952362,
+  "average_distance": 0.019232346460732005,
+  "median_distance": 0.009712876752018929,
+  "unique_query_edges": 2611,
+  "unique_match_edges": 2596
+}
