@@ -16,6 +16,7 @@ import sys
 
 class PuzzleEdgeMatcher:
     def __init__(self, config):
+        """Initializes the PuzzleEdgeMatcher with configuration, creating output directories."""
         self.config = config
         self.edges_db = []
         
@@ -24,6 +25,7 @@ class PuzzleEdgeMatcher:
         Path(self.config['vis_dir']).mkdir(parents=True, exist_ok=True)
     
     def load_metadata(self, metadata_path):
+        """Loads puzzle piece metadata from a JSON file and extracts pieces and puzzle type."""
         print(f" Loading metadata from: {metadata_path}")
         
         with open(metadata_path, 'r') as f:
@@ -40,6 +42,7 @@ class PuzzleEdgeMatcher:
         return True
     
     def preprocess_edges(self):
+        """Preprocesses edges from all pieces, resampling, normalizing, and detecting border edges."""
         print("\n Preprocessing edges...")
         
         total_edges = 0
@@ -74,6 +77,7 @@ class PuzzleEdgeMatcher:
         return True
     
     def _resample_edge(self, points, num_points):
+        """Resamples an edge to a fixed number of points using arc-length parameterization."""
         if len(points) < 2:
             return np.zeros((num_points, 2))
         
@@ -93,6 +97,7 @@ class PuzzleEdgeMatcher:
         return np.column_stack((resampled_x, resampled_y))
     
     def _is_border_edge(self, points, threshold=1.05):
+        """Determines if an edge is a border edge based on tortuosity (straightness)."""
         if len(points) < 2:
             return True
         
@@ -106,6 +111,7 @@ class PuzzleEdgeMatcher:
         return tortuosity < threshold
     
     def _normalize_edge(self, points):
+        """Normalizes an edge by centering and scaling to unit size."""
         points = np.array(points, dtype=np.float32)
         centroid = np.mean(points, axis=0)
         centered = points - centroid
@@ -117,6 +123,7 @@ class PuzzleEdgeMatcher:
         return centered / scale
     
     def compute_procrustes_distance(self, edge1, edge2):
+        """Computes the Procrustes distance between two normalized edges."""
         min_len = min(len(edge1), len(edge2))
         if min_len < 10:
             return float('inf')
@@ -141,6 +148,7 @@ class PuzzleEdgeMatcher:
             return float('inf')
     
     def find_all_matches(self):
+        """Finds matching edges among all non-border edges using Procrustes distance."""
         print(f"\n Finding matches among {len(self.edges_db)} edges...")
         
         # Only match non-border edges
@@ -200,6 +208,7 @@ class PuzzleEdgeMatcher:
         return all_matches
     
     def save_results(self, matches):
+        """Saves matching results to CSV and JSON files, and generates a summary."""
         print("\n Saving results...")
         
         # Save CSV
@@ -262,6 +271,7 @@ class PuzzleEdgeMatcher:
         return df
     
     def visualize_matches(self, matches, max_plots=10):
+        """Creates visualizations of the best matches for the first max_plots query edges."""
         print(f"\n Creating visualizations...")
         
         vis_count = min(max_plots, len(matches))
@@ -315,6 +325,7 @@ class PuzzleEdgeMatcher:
         print(f" Saved {vis_count} visualizations to {self.config['vis_dir']}")
     
     def run(self, metadata_path):
+        """Runs the complete edge matching pipeline: load, preprocess, match, save, and visualize."""
         print("=" * 60)
         print("MILESTONE 2: PUZZLE EDGE MATCHING")
         print("=" * 60)
@@ -349,37 +360,54 @@ class PuzzleEdgeMatcher:
         return True
 
 def main():
+    """Main function to run Milestone 2 with command-line arguments."""
     # YOUR EXACT PATHS
-    BASE_PROJECT = Path(r"C:\Users\belal\Desktop\Fall 2026\computer vision\project\JigsawCV")
+    BASE_PROJECT = Path(r"D:/asu/Fall 2025/CSE 483 Computer vision/Project")
     SIMPLE_M1_OUTPUT = BASE_PROJECT / "simple_milestone1_output"
     MILESTONE2_OUTPUT = BASE_PROJECT / "milestone2_output"
     
     parser = argparse.ArgumentParser(description="Milestone 2: Puzzle Edge Matching")
     
-    # List available JSON files from simple_milestone1_output
+    # 1. Find available files
     available_json = []
     if SIMPLE_M1_OUTPUT.exists():
         available_json = list(SIMPLE_M1_OUTPUT.glob("*.json"))
     
-    if available_json:
-        default_input = str(available_json[0])
-        print("Available JSON files from Milestone 1:")
-        for i, json_file in enumerate(available_json[:5]):
-            print(f"  [{i+1}] {json_file.name}")
-        print()
-    else:
-        default_input = str(SIMPLE_M1_OUTPUT / "pieces_2x2.json")
+    selected_file = None
     
-    parser.add_argument("--input", type=str, default=default_input,
-                       help=f"Path to Milestone 1 JSON output (default: {default_input})")
+    # 2. ASK USER TO CHOOSE A FILE
+    if available_json:
+        print("\n" + "="*40)
+        print(" FOUND MILESTONE 1 OUTPUT FILES:")
+        print("="*40)
+        for i, json_file in enumerate(available_json):
+            print(f"  [{i+1}] {json_file.name}")
+        print("="*40)
+        
+        while True:
+            choice = input(f"\nSelect a file to process (1-{len(available_json)}): ").strip()
+            if choice.isdigit():
+                idx = int(choice) - 1
+                if 0 <= idx < len(available_json):
+                    selected_file = str(available_json[idx])
+                    print(f"Selected: {available_json[idx].name}")
+                    break
+            print("Invalid selection. Please try again.")
+    else:
+        # Fallback if no files found
+        selected_file = str(SIMPLE_M1_OUTPUT / "pieces_2x2.json")
+    
+    # 3. Setup arguments using the selected file
+    parser.add_argument("--input", type=str, default=selected_file,
+                       help=f"Path to Milestone 1 JSON output")
     parser.add_argument("--output_dir", type=str, default=str(MILESTONE2_OUTPUT),
-                       help=f"Directory for output files (default: {MILESTONE2_OUTPUT})")
+                       help=f"Directory for output files")
     parser.add_argument("--threshold", type=float, default=0.15,
-                       help="Match threshold (lower = stricter, default: 0.15)")
+                       help="Match threshold")
     parser.add_argument("--top_k", type=int, default=5,
-                       help="Top K matches per edge (default: 5)")
+                       help="Top K matches per edge")
     parser.add_argument("--max_vis", type=int, default=10,
-                       help="Max visualizations to create (default: 10)")
+                       help="Max visualizations to create")
     
     args = parser.parse_args()
     
@@ -397,8 +425,6 @@ def main():
     # Check if input file exists
     if not Path(args.input).exists():
         print(f" Input file not found: {args.input}")
-        print("\nPlease run Simple Milestone 1 first:")
-        print("  python simple_milestone1.py --puzzle_type 2x2")
         return 1
     
     # Create and run matcher
@@ -406,7 +432,6 @@ def main():
     success = matcher.run(args.input)
     
     if not success:
-        print("\n Milestone 2 failed. Check errors above.")
         return 1
     
     return 0
