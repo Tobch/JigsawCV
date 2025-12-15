@@ -8,20 +8,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # CONFIG
-DATA_DIR = r"C:\Users\belal\Desktop\Fall 2026\computer vision\project\JigsawCV\Gravity Falls\correct"
+DATA_DIR = r"D:/asu/Fall 2025/CSE 483 Computer vision/Project/Gravity Falls/puzzle_4x4"
 OUT_DIR = Path("puzzle_output")
-MAX_DM = 1200
-MIN_AREA_RATIO = 0.002
+MAX_DM = 1200  # Maximum dimension (in pixels) for resizing images to control processing time
+MIN_AREA_RATIO = 0.002  # Minimum area ratio (as fraction of image area) for contours to be considered valid puzzle pieces
 
-# UTIL FUNCTIONS (same as before)
-def ensure_dir(p): Path(p).mkdir(parents=True, exist_ok=True)
+# UTIL FUNCTIONS 
+def ensure_dir(p):
+    """Creates the directory at the given path if it doesn't exist, including all parent directories."""
+    Path(p).mkdir(parents=True, exist_ok=True)
 def normalize_contour(cnt):
+    """Normalizes a contour by squeezing it to 2D, converting to int, and reshaping if necessary, then returns as a list."""
     cnt = np.squeeze(cnt).astype(int)
     if cnt.ndim == 1:
         cnt = cnt.reshape(1,2)
     return cnt.tolist()
 
 def discrete_curvature(contour, k=5):
+    """Calculates the discrete curvature of a contour using a window size k, returning an array of curvature values."""
     n = len(contour)
     curv = np.zeros(n)
     for i in range(n):
@@ -39,6 +43,7 @@ def discrete_curvature(contour, k=5):
     return curv
 
 def split_contour_by_curvature(cnt, k=6, factor=1.7, min_seg_len=25):
+    """Splits a contour into segments based on curvature peaks, returning a list of contour segments."""
     curv = discrete_curvature(cnt, k=k)
     thresh = max(np.median(curv)*factor, np.percentile(curv,90)*0.5)
     peaks = np.where(curv > thresh)[0]
@@ -69,6 +74,7 @@ def split_contour_by_curvature(cnt, k=6, factor=1.7, min_seg_len=25):
     return segs
 
 def smooth_contour(contour, window=5):
+    """Smooths a contour using a moving average window, returning the smoothed contour array."""
     if window <= 1:
         return np.asarray(contour, dtype=np.float32)
     arr = np.asarray(contour, dtype=np.float32)
@@ -90,7 +96,8 @@ def smooth_contour(contour, window=5):
 
 def create_debug_visualization(original, clahe_enhanced, denoised, gamma_corrected, gray, binary, contours, output_path):
     """
-    Visualization showing the NEW pipeline order
+    Creates a debug visualization showing the image processing pipeline steps and detected contours.
+    Displays original, CLAHE enhanced, denoised, gamma corrected, grayscale, binary mask, contours on CLAHE, and segmented pieces.
     """
     fig, axes = plt.subplots(2, 4, figsize=(20, 10))
     
@@ -146,6 +153,7 @@ def create_debug_visualization(original, clahe_enhanced, denoised, gamma_correct
     plt.close()
 
 def visualize_edges(contour, edges, output_path):
+    """Visualizes the full contour and detected edges on a plot, saving it to the specified path."""
     plt.figure(figsize=(10, 8))
     contour_array = np.array(contour)
     plt.plot(contour_array[:, 0], -contour_array[:, 1], 'k-', alpha=0.3, label='Full Contour')
@@ -166,12 +174,14 @@ def visualize_edges(contour, edges, output_path):
 # =============================================================================
 
 def gamma_correction_color(image, gamma=1.5):
+    """Applies gamma correction to a color image using the specified gamma value."""
     inv_gamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
     gamma_corrected = cv2.LUT(image, table)
     return gamma_corrected
 
 def enhance_contrast_color(image, clip_limit=3.0):
+    """Enhances contrast in a color image using CLAHE in the LAB color space."""
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l, a, b = cv2.split(lab)
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=(8,8))
@@ -181,6 +191,7 @@ def enhance_contrast_color(image, clip_limit=3.0):
     return enhanced
 
 def remove_noise_color(image, method='median'):
+    """Removes noise from a color image using the specified method (median or NLM)."""
     if method == 'median':
         denoised = cv2.medianBlur(image, 3)
     elif method == 'nlm':
@@ -191,10 +202,14 @@ def remove_noise_color(image, method='median'):
     return denoised
 
 # =============================================================================
-# UPDATED MAIN PROCESSING FUNCTION WITH YOUR PIPELINE ORDER
+# UPDATED MAIN PROCESSING FUNCTION WITH OUR PIPELINE ORDER
 # =============================================================================
 
 def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_AREA_RATIO):
+    """
+    Processes all images in the data directory, applying the image processing pipeline to detect and segment puzzle pieces.
+    Saves metadata, crops, masks, and visualizations for each piece.
+    """
     ensure_dir(out_dir)
     imgs = sorted(glob(str(Path(data_dir) / "**" / "*.png"), recursive=True) +
                   glob(str(Path(data_dir) / "**" / "*.jpg"), recursive=True) +
@@ -202,14 +217,14 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
     metadata = []
     summary = []
     
-    print(f"📁 Found {len(imgs)} images in {data_dir}")
+    print(f" Found {len(imgs)} images in {data_dir}")
     
     for img_path in imgs:
         img = cv2.imread(img_path)
         if img is None:
             print("Couldn't read", img_path); continue
         
-        print(f"🔍 Processing: {Path(img_path).name}")
+        print(f" Processing: {Path(img_path).name}")
         
         h,w = img.shape[:2]
         scale = 1.0
@@ -220,7 +235,7 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             img_small = img.copy()
         
         # =============================================================================
-        # YOUR PIPELINE ORDER: Color → CLAHE → Denoising → Gamma → Grayscale → Thresholding
+        # Our PIPELINE ORDER: Color → CLAHE → Denoising → Gamma → Grayscale → Thresholding
         # =============================================================================
         
         # Step 1: CLAHE Enhancement (FIRST as requested)
@@ -273,7 +288,7 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             contours=[p[1] for p in pieces],
             output_path=debug_path
         )
-        print(f"   💾 Saved debug visualization: {debug_path}")
+        print(f"    Saved debug visualization: {debug_path}")
         
         # Save contour visualization ON CLAHE IMAGE (as requested)
         contour_vis = clahe_enhanced.copy()
@@ -321,16 +336,16 @@ def process_all_images(data_dir, out_dir, max_dim=MAX_DM, min_area_ratio=MIN_ARE
             metadata.append(meta)
             summary.append({"id":uid, "source":Path(img_path).stem, "area_px":meta["area_px"], "bbox":meta["bbox"], "n_contour_pts":meta["contour_n_points"], "n_edges": len(edges)})
             
-            print(f"   ✅ Piece {i}: area={meta['area_px']}px, edges={len(edges)}")
+            print(f"    Piece {i}: area={meta['area_px']}px, edges={len(edges)}")
         
-        print(f"   📊 Found {len(pieces)} valid pieces")
+        print(f"    Found {len(pieces)} valid pieces")
     
     # Save metadata
     with open(Path(out_dir)/"pieces_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
     pd.DataFrame(summary).to_csv(Path(out_dir)/"pieces_summary.csv", index=False)
     print("Done. outputs in:", out_dir)
-    print(f"🎉 Total pieces processed: {len(metadata)}")
+    print(f" Total pieces processed: {len(metadata)}")
 
 if __name__ == "__main__":
     process_all_images(DATA_DIR, OUT_DIR)
