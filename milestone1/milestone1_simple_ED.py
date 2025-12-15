@@ -13,9 +13,8 @@ class SimpleEdgeDetector:
     
     def __init__(self, input_folder, output_json_path):
         """
-        Args:
-            input_folder: Path to folder with puzzle images
-            output_json_path: Where to save the JSON with edge data
+        Initializes the SimpleEdgeDetector with input folder and output path.
+        Sets up paths and ensures output directory exists.
         """
         self.input_folder = Path(input_folder)
         self.output_json_path = Path(output_json_path)
@@ -240,7 +239,7 @@ def run_simple_milestone1():
     import argparse
     
     # YOUR EXACT PATHS
-    BASE_PROJECT = Path(r"C:\Users\belal\Desktop\Fall 2026\computer vision\project\JigsawCV")
+    BASE_PROJECT = Path(r"D:/asu/Fall 2025/CSE 483 Computer vision/Project")
     GRAVITY_FALLS = BASE_PROJECT / "Gravity Falls"
     OUTPUT_BASE = BASE_PROJECT / "simple_milestone1_output"
     
